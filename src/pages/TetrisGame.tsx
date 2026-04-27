@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useReducer, useRef } from 'react';
-import { calcDropInterval, createInitialState, gameReducer } from '../game/engine';
+import { calcDropInterval, createInitialState, gameReducer, type GameAction } from '../game/engine';
 import { Controls } from '../components/Controls';
 import { NextPiece } from '../components/NextPiece';
 import { ScorePanel } from '../components/ScorePanel';
 import { TetrisBoard } from '../components/TetrisBoard';
 
-const KEY_ACTIONS: Record<string, 'MOVE_LEFT' | 'MOVE_RIGHT' | 'MOVE_DOWN' | 'ROTATE' | 'HARD_DROP' | 'TOGGLE_PAUSE' | 'RESTART'> = {
+type GameActionType = GameAction['type'];
+
+const KEY_ACTIONS: Record<string, GameActionType> = {
   ArrowLeft: 'MOVE_LEFT',
   a: 'MOVE_LEFT',
   A: 'MOVE_LEFT',
@@ -47,8 +49,8 @@ export function TetrisGame() {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const dispatchMove = useCallback((type: keyof typeof KEY_ACTIONS | Parameters<typeof dispatch>[0]['type']) => {
-    dispatch({ type: type as Parameters<typeof dispatch>[0]['type'] });
+  const dispatchMove = useCallback((type: GameActionType) => {
+    dispatch({ type });
   }, []);
 
   useEffect(() => {
