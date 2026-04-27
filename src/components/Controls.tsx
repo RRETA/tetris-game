@@ -1,3 +1,5 @@
+import { memo } from 'react';
+
 interface ControlsProps {
   onLeft: () => void;
   onRight: () => void;
@@ -10,103 +12,87 @@ interface ControlsProps {
   gameOver: boolean;
 }
 
-function Btn({ label, sub, onClick, wide }: { label: string; sub?: string; onClick: () => void; wide?: boolean }) {
+interface ControlButtonProps {
+  label: string;
+  ariaLabel: string;
+  onClick: () => void;
+  subLabel?: string;
+  wide?: boolean;
+  disabled?: boolean;
+  variant?: 'primary' | 'secondary';
+}
+
+const ControlButton = memo(function ControlButton({
+  label,
+  ariaLabel,
+  onClick,
+  subLabel,
+  wide = false,
+  disabled = false,
+  variant = 'primary',
+}: ControlButtonProps) {
   return (
     <button
+      type="button"
+      className={`control-button control-button--${variant}${wide ? ' control-button--wide' : ''}`}
+      aria-label={ariaLabel}
       onClick={onClick}
-      style={{
-        background: '#12122a',
-        border: '1px solid #2a2a5a',
-        color: '#c0b0ff',
-        fontFamily: 'monospace',
-        fontSize: sub ? 10 : 18,
-        fontWeight: 700,
-        width: wide ? '100%' : 52,
-        height: 44,
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        lineHeight: 1,
-        gap: 2,
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        touchAction: 'manipulation',
-        transition: 'background 0.1s',
-      }}
-      onPointerDown={e => {
-        (e.currentTarget as HTMLButtonElement).style.background = '#1e1e44';
-      }}
-      onPointerUp={e => {
-        (e.currentTarget as HTMLButtonElement).style.background = '#12122a';
-      }}
-      onPointerLeave={e => {
-        (e.currentTarget as HTMLButtonElement).style.background = '#12122a';
-      }}
+      disabled={disabled}
     >
-      <span style={{ fontSize: wide ? 13 : 18 }}>{label}</span>
-      {sub && <span style={{ fontSize: 9, color: '#666', marginTop: 1 }}>{sub}</span>}
+      <span className="control-button__label">{label}</span>
+      {subLabel ? <span className="control-button__sub-label">{subLabel}</span> : null}
     </button>
   );
-}
+});
 
-export function Controls({ onLeft, onRight, onDown, onRotate, onDrop, onPause, onRestart, paused, gameOver }: ControlsProps) {
+export const Controls = memo(function Controls({
+  onLeft,
+  onRight,
+  onDown,
+  onRotate,
+  onDrop,
+  onPause,
+  onRestart,
+  paused,
+  gameOver,
+}: ControlsProps) {
   return (
-    <div style={{ marginTop: 16 }}>
-      <div style={{ fontSize: 10, letterSpacing: 3, color: '#444', fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' }}>
+    <section className="controls-card" aria-labelledby="controls-title">
+      <h2 id="controls-title" className="panel-title">
         Controls
+      </h2>
+
+      <div className="controls-grid" aria-label="Touch controls">
+        <div className="controls-grid__row controls-grid__row--center">
+          <ControlButton label="↑" subLabel="Rotate" ariaLabel="Rotate piece" onClick={onRotate} disabled={gameOver} />
+        </div>
+
+        <div className="controls-grid__row controls-grid__row--three">
+          <ControlButton label="←" ariaLabel="Move piece left" onClick={onLeft} disabled={gameOver} />
+          <ControlButton label="↓" subLabel="Down" ariaLabel="Soft drop piece" onClick={onDown} disabled={gameOver} />
+          <ControlButton label="→" ariaLabel="Move piece right" onClick={onRight} disabled={gameOver} />
+        </div>
+
+        <ControlButton
+          label="Hard drop"
+          ariaLabel="Hard drop piece"
+          onClick={onDrop}
+          disabled={gameOver}
+          wide
+        />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-        <Btn label="↑" sub="Rotate" onClick={onRotate} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 4 }}>
-        <Btn label="←" onClick={onLeft} />
-        <Btn label="↓" sub="Down" onClick={onDown} />
-        <Btn label="→" onClick={onRight} />
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
-        <Btn label="⬇ Drop" wide onClick={onDrop} />
-      </div>
-
-      <div style={{ display: 'flex', gap: 4 }}>
-        <button
+      <div className="controls-actions">
+        <ControlButton
+          label={paused ? 'Resume' : 'Pause'}
+          ariaLabel={paused ? 'Resume game' : 'Pause game'}
           onClick={onPause}
           disabled={gameOver}
-          style={{
-            flex: 1,
-            background: paused ? '#1a0a30' : '#0d0d1a',
-            border: `1px solid ${paused ? '#aa00ff' : '#1a1a3a'}`,
-            color: paused ? '#aa00ff' : '#888',
-            fontFamily: 'monospace',
-            fontSize: 11,
-            letterSpacing: 2,
-            padding: '8px 0',
-            cursor: gameOver ? 'not-allowed' : 'pointer',
-            textTransform: 'uppercase',
-          }}
-        >
-          {paused ? 'Resume' : 'Pause'}
-        </button>
-        <button
-          onClick={onRestart}
-          style={{
-            flex: 1,
-            background: '#0d0d1a',
-            border: '1px solid #1a1a3a',
-            color: '#888',
-            fontFamily: 'monospace',
-            fontSize: 11,
-            letterSpacing: 2,
-            padding: '8px 0',
-            cursor: 'pointer',
-            textTransform: 'uppercase',
-          }}
-        >
-          Restart
-        </button>
+          variant="secondary"
+          wide
+        />
+        <ControlButton label="Restart" ariaLabel="Restart game" onClick={onRestart} variant="secondary" wide />
       </div>
-    </div>
+    </section>
   );
-}
+});
