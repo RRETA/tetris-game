@@ -1,5 +1,15 @@
 {
-  "include": ["src/**/*", "vite.config.ts"],
+  "include": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/pages/TetrisGame.tsx",
+    "src/components/TetrisBoard.tsx",
+    "src/components/NextPiece.tsx",
+    "src/components/ScorePanel.tsx",
+    "src/components/Controls.tsx",
+    "src/game/**/*.ts",
+    "vite.config.ts"
+  ],
   "exclude": ["node_modules", "dist", "build", "**/*.test.ts"],
   "compilerOptions": {
     "target": "ES2022",
