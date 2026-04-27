@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, type CSSProperties } from 'react';
 import { Tetromino } from '../game/tetrominos';
 
 interface NextPieceProps {
@@ -32,19 +32,16 @@ export const NextPiece = memo(function NextPiece({ piece }: NextPieceProps) {
             pieceCol < piece.shape[0].length &&
             piece.shape[pieceRow][pieceCol] === 1;
 
+          const cellStyle = isFilled
+            ? ({ '--cell-color': piece.color, '--cell-shadow': piece.shadow } as CSSProperties)
+            : undefined;
+
           return (
             <span
               aria-hidden="true"
               className={isFilled ? 'preview-grid__cell preview-grid__cell--filled' : 'preview-grid__cell'}
               key={`${row}-${col}`}
-              style={
-                isFilled
-                  ? {
-                      '--cell-color': piece.color,
-                      '--cell-shadow': piece.shadow,
-                    } as React.CSSProperties
-                  : undefined
-              }
+              style={cellStyle}
             />
           );
         })}
