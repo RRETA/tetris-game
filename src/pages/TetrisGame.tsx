@@ -1,121 +1,103 @@
-import { useReducer, useEffect, useCallback, useRef } from 'react';
-import { gameReducer, createInitialState, calcDropInterval } from '../game/engine';
-import { TetrisBoard } from '../components/TetrisBoard';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { calcDropInterval, createInitialState, gameReducer } from '../game/engine';
+import { Controls } from '../components/Controls';
 import { NextPiece } from '../components/NextPiece';
 import { ScorePanel } from '../components/ScorePanel';
-import { Controls } from '../components/Controls';
+import { TetrisBoard } from '../components/TetrisBoard';
+
+const KEY_ACTIONS: Record<string, 'MOVE_LEFT' | 'MOVE_RIGHT' | 'MOVE_DOWN' | 'ROTATE' | 'HARD_DROP' | 'TOGGLE_PAUSE' | 'RESTART'> = {
+  ArrowLeft: 'MOVE_LEFT',
+  a: 'MOVE_LEFT',
+  A: 'MOVE_LEFT',
+  ArrowRight: 'MOVE_RIGHT',
+  d: 'MOVE_RIGHT',
+  D: 'MOVE_RIGHT',
+  ArrowDown: 'MOVE_DOWN',
+  s: 'MOVE_DOWN',
+  S: 'MOVE_DOWN',
+  ArrowUp: 'ROTATE',
+  w: 'ROTATE',
+  W: 'ROTATE',
+  ' ': 'HARD_DROP',
+  p: 'TOGGLE_PAUSE',
+  P: 'TOGGLE_PAUSE',
+  r: 'RESTART',
+  R: 'RESTART',
+};
+
+const keyboardHints = [
+  ['← / A', 'Move left'],
+  ['→ / D', 'Move right'],
+  ['↑ / W', 'Rotate'],
+  ['↓ / S', 'Soft drop'],
+  ['Space', 'Hard drop'],
+  ['P', 'Pause'],
+  ['R', 'Restart'],
+] as const;
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+
+  const tagName = target.tagName.toLowerCase();
+  return target.isContentEditable || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+}
 
 export function TetrisGame() {
-  const [state, dispatch] = useReducer(gameReducer, createInitialState());
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [state, dispatch] = useReducer(gameReducer, undefined, createInitialState);
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  const startTick = useCallback(() => {
-    if (tickRef.current) clearInterval(tickRef.current);
-    const interval = calcDropInterval(stateRef.current.level);
-    tickRef.current = setInterval(() => {
+  const dispatchMove = useCallback((type: keyof typeof KEY_ACTIONS | Parameters<typeof dispatch>[0]['type']) => {
+    dispatch({ type: type as Parameters<typeof dispatch>[0]['type'] });
+  }, []);
+
+  useEffect(() => {
+    if (state.gameOver || state.paused) return undefined;
+
+    const interval = window.setInterval(() => {
       if (!stateRef.current.paused && !stateRef.current.gameOver) {
         dispatch({ type: 'TICK' });
       }
-    }, interval);
-  }, []);
+    }, calcDropInterval(state.level));
+
+    return () => window.clearInterval(interval);
+  }, [state.level, state.gameOver, state.paused]);
 
   useEffect(() => {
-    startTick();
-    return () => {
-      if (tickRef.current) clearInterval(tickRef.current);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+
+      const action = KEY_ACTIONS[event.key];
+      if (!action) return;
+
+      event.preventDefault();
+      dispatch({ type: action });
     };
-  }, [state.level, startTick]);
 
-  useEffect(() => {
-    if (state.gameOver && tickRef.current) {
-      clearInterval(tickRef.current);
-      tickRef.current = null;
-    }
-  }, [state.gameOver]);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-
-      switch (e.key) {
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          e.preventDefault();
-          dispatch({ type: 'MOVE_LEFT' });
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          e.preventDefault();
-          dispatch({ type: 'MOVE_RIGHT' });
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          e.preventDefault();
-          dispatch({ type: 'MOVE_DOWN' });
-          break;
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          e.preventDefault();
-          dispatch({ type: 'ROTATE' });
-          break;
-        case ' ':
-          e.preventDefault();
-          dispatch({ type: 'HARD_DROP' });
-          break;
-        case 'p':
-        case 'P':
-          dispatch({ type: 'TOGGLE_PAUSE' });
-          break;
-        case 'r':
-        case 'R':
-          dispatch({ type: 'RESTART' });
-          break;
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(160deg, #08081a 0%, #0f0820 50%, #080818 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        fontFamily: 'monospace',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <h1
-          style={{
-            fontSize: 28,
-            fontWeight: 900,
-            letterSpacing: 12,
-            color: '#aa00ff',
-            textShadow: '0 0 30px #aa00ff, 0 0 60px #5500aa',
-            marginBottom: 20,
-            fontFamily: 'monospace',
-            textTransform: 'uppercase',
-          }}
-        >
-          TETRIS
-        </h1>
+    <main className="game-page">
+      <section className="game-card" aria-labelledby="game-title">
+        <header className="game-header">
+          <div>
+            <p className="eyebrow">React + TypeScript</p>
+            <h1 id="game-title" className="game-title">
+              Tetris
+            </h1>
+          </div>
+          <p className="game-status" aria-live="polite">
+            {state.gameOver ? 'Game over' : state.paused ? 'Paused' : 'Playing'}
+          </p>
+        </header>
 
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="game-layout">
+          <aside className="side-panel side-panel--left" aria-label="Game statistics">
             <ScorePanel score={state.score} lines={state.lines} level={state.level} />
             <NextPiece piece={state.nextPiece} />
-          </div>
+          </aside>
 
           <TetrisBoard
             board={state.board}
@@ -126,45 +108,35 @@ export function TetrisGame() {
             paused={state.paused}
           />
 
-          <div style={{ width: 160 }}>
+          <aside className="side-panel side-panel--right" aria-label="Game controls">
             <Controls
-              onLeft={() => dispatch({ type: 'MOVE_LEFT' })}
-              onRight={() => dispatch({ type: 'MOVE_RIGHT' })}
-              onDown={() => dispatch({ type: 'MOVE_DOWN' })}
-              onRotate={() => dispatch({ type: 'ROTATE' })}
-              onDrop={() => dispatch({ type: 'HARD_DROP' })}
-              onPause={() => dispatch({ type: 'TOGGLE_PAUSE' })}
-              onRestart={() => dispatch({ type: 'RESTART' })}
+              onLeft={() => dispatchMove('MOVE_LEFT')}
+              onRight={() => dispatchMove('MOVE_RIGHT')}
+              onDown={() => dispatchMove('MOVE_DOWN')}
+              onRotate={() => dispatchMove('ROTATE')}
+              onDrop={() => dispatchMove('HARD_DROP')}
+              onPause={() => dispatchMove('TOGGLE_PAUSE')}
+              onRestart={() => dispatchMove('RESTART')}
               paused={state.paused}
               gameOver={state.gameOver}
             />
 
-            <div
-              style={{
-                marginTop: 20,
-                padding: '10px 12px',
-                background: '#0d0d1a',
-                border: '1px solid #1a1a3a',
-              }}
-            >
-              <div style={{ fontSize: 10, letterSpacing: 3, color: '#444', textTransform: 'uppercase', marginBottom: 6 }}>Keyboard</div>
-              {[
-                ['←/→', 'Move'],
-                ['↑ / W', 'Rotate'],
-                ['↓ / S', 'Soft drop'],
-                ['Space', 'Hard drop'],
-                ['P', 'Pause'],
-                ['R', 'Restart'],
-              ].map(([key, action]) => (
-                <div key={key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#666', marginBottom: 3 }}>
-                  <span style={{ color: '#888' }}>{key}</span>
-                  <span>{action}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+            <section className="keyboard-card" aria-labelledby="keyboard-title">
+              <h2 id="keyboard-title" className="panel-title">
+                Keyboard
+              </h2>
+              <dl className="keyboard-list">
+                {keyboardHints.map(([key, action]) => (
+                  <div className="keyboard-list__row" key={key}>
+                    <dt>{key}</dt>
+                    <dd>{action}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          </aside>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
