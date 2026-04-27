@@ -1,8 +1,9 @@
 export type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
+export type TetrominoShape = number[][];
 
 export interface Tetromino {
   type: TetrominoType;
-  shape: number[][];
+  shape: TetrominoShape;
   color: string;
   shadow: string;
 }
@@ -80,21 +81,30 @@ export const TETROMINOS: Record<TetrominoType, Tetromino> = {
   },
 };
 
-export const TETROMINO_TYPES: TetrominoType[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+export const TETROMINO_TYPES: readonly TetrominoType[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+
+function cloneTetromino(tetromino: Tetromino): Tetromino {
+  return {
+    ...tetromino,
+    shape: tetromino.shape.map((row) => [...row]),
+  };
+}
 
 export function getRandomTetromino(): Tetromino {
   const type = TETROMINO_TYPES[Math.floor(Math.random() * TETROMINO_TYPES.length)];
-  return TETROMINOS[type];
+  return cloneTetromino(TETROMINOS[type]);
 }
 
-export function rotateTetromino(shape: number[][]): number[][] {
+export function rotateTetromino(shape: TetrominoShape): TetrominoShape {
   const rows = shape.length;
   const cols = shape[0].length;
-  const rotated: number[][] = Array.from({ length: cols }, () => Array(rows).fill(0));
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      rotated[c][rows - 1 - r] = shape[r][c];
+  const rotated: TetrominoShape = Array.from({ length: cols }, () => Array(rows).fill(0));
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let col = 0; col < cols; col += 1) {
+      rotated[col][rows - 1 - row] = shape[row][col];
     }
   }
+
   return rotated;
 }
